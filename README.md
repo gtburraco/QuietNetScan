@@ -150,7 +150,9 @@ mac-vendor-lookup>=0.1.12
 ```
 
 ### Windows
+Binary: https://github.com/gtburraco/QuietNetScan/releases/tag/v1.0
 RUN AS ADMINISTRATOR
+
 Scapy on Windows requires **Npcap**:
 
 https://npcap.com/#download/
