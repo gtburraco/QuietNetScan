@@ -146,11 +146,10 @@ See `requirements.txt`
 ```txt
 PySide6>=6.5
 scapy>=2.5.0
-mac-vendor-lookup>=0.1.12
 ```
 
 ### Windows
-Binary: https://github.com/gtburraco/QuietNetScan/releases/tag/v1.0
+Binary: https://github.com/gtburraco/QuietNetScan/releases/tag/v2.0
 RUN AS ADMINISTRATOR
 
 Scapy on Windows requires **Npcap**:
