@@ -27,7 +27,6 @@ def show_warning(parent: QWidget, text: str, details: str = None):
     msg.exec()
 
 
-
 def show_info(parent: QWidget, text: str, details: str = None):
     msg = QMessageBox(
         QMessageBox.Icon.Information,
@@ -40,7 +39,8 @@ def show_info(parent: QWidget, text: str, details: str = None):
         msg.setDetailedText(details)
     msg.exec()
 
+
 def show_question(parent: QWidget, text: str, details: str = None) -> bool:
     return QMessageBox.question(parent, parent.tr("Question"), text,
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes
+                                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes

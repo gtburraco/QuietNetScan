@@ -1,16 +1,19 @@
 from typing import List
 
+from utils.ip_utils import guess_host_type
+
+
 class NetworkObject:
     def __init__(
-        self,
-        discovery_method: str | None,
-    address: str,
-    open_tcp_ports: List[int] | None,
-    open_udp_ports: List[int] | None,
-    ttl: int | None = None,
-    rtt: float | None = None,
-    mac_address: str | None = None,
-    vendor: str | None = None,
+            self,
+            discovery_method: str | None,
+            address: str,
+            open_tcp_ports: List[int] | None,
+            open_udp_ports: List[int] | None,
+            ttl: int | None = None,
+            rtt: float | None = None,
+            mac_address: str | None = None,
+            vendor: str | None = None,
     ):
 
         self._discovery_method = discovery_method
@@ -19,12 +22,12 @@ class NetworkObject:
         self._open_udp_ports = open_udp_ports
         self._ttl = ttl
         self._rtt = rtt
-        self._mac_address = mac_address
+        self._mac = mac_address
         self._vendor = vendor
 
     @property
-    def mac_address(self) -> str | None:
-        return self._mac_address
+    def mac(self) -> str | None:
+        return self._mac
 
     @property
     def open_tcp_ports(self) -> str | None:
@@ -57,6 +60,10 @@ class NetworkObject:
     @property
     def ttl(self) -> int | None:
         return self._ttl
+
+    @property
+    def os(self) -> str | None:
+        return guess_host_type(self._ttl, self._open_tcp_ports, self._open_udp_ports, self._vendor)
 
     def __repr__(self) -> str:
         return f"NetworkObject(address='{self._address}', ttl={self._ttl})"

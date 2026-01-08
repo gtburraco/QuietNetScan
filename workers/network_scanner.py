@@ -3,10 +3,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
 from PySide6.QtCore import QThread, Signal
-from mac_vendor_lookup import MacLookup
+
 from models.network_object import NetworkObject
-from utils.ip_utils import tcp_syn_probe, COMMON_PORTS, tcp_connect_probe, icmp_ping, \
-    udp_probe, COMMON_UDP_PORTS, get_mac_arp
+from utils.ip_utils import tcp_syn_probe, tcp_connect_probe, icmp_ping, \
+    udp_probe, COMMON_UDP_PORTS, get_mac_arp, COMMON_TCP_PORTS
+from utils.mac_lookup import MyMacVendorLookup
 
 
 class MultiThreadScannerWorker(QThread):
@@ -14,13 +15,15 @@ class MultiThreadScannerWorker(QThread):
     progress = Signal(int)
     scan_finished = Signal()
 
-    def __init__(self, ip_list: list[str], max_threads: int = 10, parent=None):
+    def __init__(self, ip_list: list[str], max_threads: int = 10, vendor_file: str = "", parent=None):
         super().__init__(parent)
         self.ip_list = ip_list
         self.max_threads = max_threads
         self._running = True
-        self.mac_lookup = MacLookup()
         self.futures = []
+        self.mac_lookup = None
+        if vendor_file:
+            self.mac_lookup = MyMacVendorLookup(vendor_file)
 
     def run(self):
         with ThreadPoolExecutor(max_workers=self.max_threads) as executor:
@@ -59,18 +62,18 @@ class MultiThreadScannerWorker(QThread):
         if not self._running:
             return
 
-        #Always ping for ttl
+        # Always ping for ttl
         success, ttl, rtt = icmp_ping(ip)
         if success and not discovery_method:
             discovery_method = "ICMP"
-            if not mac: # retry
+            if not mac:  # retry
                 mac = get_mac_arp(ip)
 
         if not self._running:
             return
 
         if not discovery_method:
-            for port in COMMON_PORTS:
+            for port in COMMON_TCP_PORTS:
                 if not self._running:
                     return
                 success, rtt = tcp_syn_probe(ip, port)
@@ -78,9 +81,8 @@ class MultiThreadScannerWorker(QThread):
                     discovery_method = f"TCP_SYN:{port}"
                     break
 
-
         # Always scan TCP
-        for port in COMMON_PORTS:
+        for port in COMMON_TCP_PORTS:
             if not self._running:
                 return
             tcp_conn_alive, tcp_port_open, rtt = tcp_connect_probe(ip, port)
@@ -102,15 +104,14 @@ class MultiThreadScannerWorker(QThread):
                 open_udp_ports.append(port)
 
         # --- Vendor lookup ---
-        if mac:
+        if mac and self.mac_lookup:
             try:
                 vendor = self.mac_lookup.lookup(mac)
             except Exception as e:
                 vendor = ""
 
         if discovery_method:
-            obj = NetworkObject(discovery_method, ip, open_tcp_ports,open_udp_ports, ttl, rtt, mac, vendor)
+            obj = NetworkObject(discovery_method, ip, open_tcp_ports, open_udp_ports, ttl, rtt, mac, vendor)
             self.network_object_found.emit(obj)
 
         self.progress.emit(1)
-
