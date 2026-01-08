@@ -73,12 +73,12 @@ Regardless of how a host is discovered, the scanner will:
 
 **TCP:**
 ```
-80, 135, 443, 22, 445, 3389
+22, 80, 135, 443, 445, 631, 3389, 9100
 ```
 
 **UDP:**
 ```
-137, 138, 161, 1900, 389
+53, 123, 137, 138, 161, 389, 1900, 5553
 ```
 
 These defaults target:
