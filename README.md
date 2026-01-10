@@ -155,7 +155,7 @@ scapy>=2.5.0
 
 
 ### Windows
-Binary: https://github.com/gtburraco/QuietNetScan/releases/tag/v1.2
+Binary: [https://github.com/gtburraco/QuietNetScan/releases/tag/v1.2](https://github.com/gtburraco/QuietNetScan/releases/tag/1.2)
 RUN AS ADMINISTRATOR
 
 Scapy on Windows requires **Npcap**:
