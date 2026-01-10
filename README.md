@@ -147,6 +147,12 @@ See `requirements.txt`
 PySide6>=6.5
 scapy>=2.5.0
 ```
+## Installation
+
+1. Install Python from:  https://www.python.org
+2. Install the required dependencies:  pip install -r requirements.txt
+3. Run:  py main.py
+
 
 ### Windows
 Binary: https://github.com/gtburraco/QuietNetScan/releases/tag/v2.0
