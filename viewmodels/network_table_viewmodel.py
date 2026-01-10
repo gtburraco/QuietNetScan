@@ -1,4 +1,6 @@
+import csv
 import ipaddress
+from pathlib import Path
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 
@@ -80,6 +82,28 @@ class NetworkTableViewModel(QAbstractTableModel):
             )
         self.layoutChanged.emit()
 
+    def export_to_csv(self, file_path: str | Path) -> None:
+        file_path = Path(file_path)
+
+        with file_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter=";")
+
+            # Header
+            writer.writerow(self.headers)
+
+            # Rows
+            for obj in self._items:
+                writer.writerow([
+                    obj.address,
+                    obj.ttl if obj.ttl is not None else "",
+                    f"{obj.rtt:.2f}" if obj.rtt is not None else "",
+                    obj.mac or "",
+                    obj.vendor or "",
+                    obj.open_tcp_ports or "",
+                    obj.open_udp_ports or "",
+                    obj.os or "",
+                    obj.discovery_method or "",
+                ])
     def clear(self):
         self.beginResetModel()
         self._items.clear()

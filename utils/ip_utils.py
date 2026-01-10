@@ -6,17 +6,18 @@ import time
 import traceback
 from typing import List, Optional
 
+from scapy.asn1.asn1 import ASN1_OID
 from scapy.layers.dns import DNSQR, DNS
 from scapy.layers.inet import IP, TCP, ICMP, UDP
 from scapy.layers.l2 import ARP, Ether
 from scapy.layers.netbios import NBNSQueryRequest
-from scapy.layers.snmp import SNMP, SNMPget
+from scapy.layers.snmp import SNMP, SNMPget, SNMPvarbind
 from scapy.sendrecv import sr1, srp
 
 MAX_IP_SCAN = 1024
-COMMON_TCP_PORTS = [22, 80, 135, 443, 445, 631, 3389, 9100]
+COMMON_TCP_PORTS = [22, 80, 135, 389, 443, 445, 631, 3389, 9100]
 COMMON_UDP_PORTS = [53, 123, 137, 138, 161, 389, 1900, 5553]
-DEF_TIMEOUT = 1.5
+DEF_TIMEOUT = 1.0
 
 
 def is_valid_ip(ip: str) -> bool:
@@ -203,7 +204,7 @@ def udp_probe(ip: str, port: int, timeout: float = DEF_TIMEOUT) -> tuple[bool, b
             pkt = IP(dst=ip) / UDP(dport=port) / NBNSQueryRequest()
         elif port == 161:
             # SNMP GetRequest community "public"
-            pkt = IP(dst=ip) / UDP(dport=161) / SNMP(community="public", PDU=SNMPget(varbindlist=[]))
+            pkt = IP(dst=ip) / UDP(dport=161) / SNMP(community="public", PDU=SNMPget(varbindlist=[SNMPvarbind(oid=ASN1_OID("1.3.6.1.2.1.1.3.0"))]))
         elif port == 1900:
             # SSDP M-SEARCH
             msg = (
@@ -257,55 +258,88 @@ def guess_host_type(
 ) -> str:
     tcp_ports = set(open_tcp_ports)
     udp_ports = set(open_udp_ports)
+    vendor = (vendor_name or "").lower()
 
     if ttl is not None and (not isinstance(ttl, int) or ttl <= 0 or ttl > 255):
         ttl = None
 
-    vendor = (vendor_name or "").lower()
+    if 9100 in tcp_ports:
+        return "Printer (Direct)"
 
-    if 9100 in tcp_ports or "printer" in vendor or "hp" in vendor or "epson" in vendor or "brother" in vendor or "canon" in vendor or "ricoh" in vendor or "lexmark" in vendor:
+    printer_vendors = ["printer", "hp", "epson", "brother", "canon", "ricoh", "lexmark", "xerox"]
+
+    if {515, 631}.intersection(tcp_ports) and any(v in vendor for v in printer_vendors):
         return "Printer"
 
-    # Router / switch / network appliance
-    if ttl and ttl >= 200:
-        if {80, 443}.intersection(tcp_ports) or 161 in udp_ports:
-            return "Router / Network Device"
-
-    # Windows
     if {135, 445}.issubset(tcp_ports):
+        if 389 in tcp_ports or 636 in tcp_ports or 88 in tcp_ports:
+            return "Windows Server (Domain Controller)"
+
+        if 3389 in tcp_ports or any(p in tcp_ports for p in [1433, 3306, 5985, 5986]):
+            return "Windows Server"
+
         return "Windows Host"
 
     if 3389 in tcp_ports and ttl and 110 <= ttl <= 140:
         return "Windows Host (RDP)"
 
-    # NAS / Storage
-    if 445 in tcp_ports and 22 in tcp_ports:
-        return "NAS / Storage Device"
+    if {22, 445}.issubset(tcp_ports) or (22 in tcp_ports and 2049 in tcp_ports):
+        nas_vendors = ["synology", "qnap", "netgear", "wd", "seagate", "buffalo"]
+        if any(v in vendor for v in nas_vendors):
+            return "NAS / Storage Device"
 
-    # Linux / Unix / macOS
-    if 22 in tcp_ports and not {135, 445}.intersection(tcp_ports):
-        if ttl and ttl <= 70:
+        if {80, 443, 22, 445}.intersection(tcp_ports) == {80, 443, 22, 445}:
+            return "NAS / Storage Device (probable)"
+
+    if 22 in tcp_ports and not {135, 445, 3389}.intersection(tcp_ports):
+        if ttl and ttl <= 64:
             return "Linux / Unix Host"
 
-    # Active Directory / Server Windows
-    if {135, 389, 445}.intersection(tcp_ports):
-        return "Windows Server"
+        if any(p in tcp_ports for p in [80, 443, 8080, 3000, 5432, 27017]):
+            return "Linux / Unix Host (probable)"
 
-    # ---------- Regole a media confidenza ----------
+    indicators = 0
+    if ttl is not None and ttl >= 200:
+        indicators += 1
+    if 161 in udp_ports:
+        indicators += 1
+    if any(p in tcp_ports for p in (80, 443)):
+        indicators += 1
+    if any(p in tcp_ports for p in (22, 23)):
+        indicators += 1
+    if indicators >= 2:
+        return "Router / Network Device"
 
-    # Web device generico
-    if {80.443}.intersection(tcp_ports) and not {22, 135, 445}.intersection(tcp_ports):
+    if vendor and "apple" in vendor:
+        if 22 in tcp_ports:
+            return "macOS Host"
+        if 548 in tcp_ports:
+            return "macOS Host (AFP)"
+        return "Apple Device ? (iOS / iPadOS)"
+
+    if {80, 443}.intersection(tcp_ports) and not {22, 135, 445, 3389}.intersection(tcp_ports):
+        if ttl and ttl >= 200:
+            return "Embedded / Network Device"
         return "Embedded / Web Device"
 
-    # SNMP only
     if 161 in udp_ports and not tcp_ports:
-        return "Network Device (SNMP)"
+        return "Network Device (SNMP only)"
 
-    # ---------- Fallback ----------
-    if vendor and "apple" in vendor.lower():
-        return "Apple Device ?? (macOS / iOS)"
+    if {5060, 5061}.intersection(tcp_ports) or 5060 in udp_ports:
+        return "VoIP Device / IP Phone"
 
     if tcp_ports or udp_ports:
         return "Generic Network Host"
 
-    return "Unknown Host"
+    return "??? Unknown ???"
+"""
+def lookup_mac_vendor_online(mac: str, timeout: float = 1.5) -> str | None:
+    try:
+        url = f"https://api.macvendors.com/{mac}"
+        r = requests.get(url, timeout=timeout)
+        if r.status_code == 200 and r.text:
+            return "*"+r.text.strip()
+    except Exception:
+        pass
+    return None
+"""

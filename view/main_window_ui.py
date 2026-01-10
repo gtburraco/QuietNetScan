@@ -8,12 +8,18 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QMetaObject)
-from PySide6.QtGui import (QAction)
-from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QLineEdit, QProgressBar, QPushButton,
-                               QSizePolicy, QSpacerItem, QStatusBar, QTableView,
-                               QVBoxLayout, QWidget)
-
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
+    QCursor, QFont, QFontDatabase, QGradient,
+    QIcon, QImage, QKeySequence, QLinearGradient,
+    QPainter, QPalette, QPixmap, QRadialGradient,
+    QTransform)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QHBoxLayout, QHeaderView,
+    QLineEdit, QMainWindow, QProgressBar, QPushButton,
+    QSizePolicy, QSpacerItem, QStatusBar, QTableView,
+    QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -44,25 +50,38 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addItem(self.horizontalSpacer)
 
+
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.start_scan_button = QPushButton(self.centralwidget)
         self.start_scan_button.setObjectName(u"start_scan_button")
+        icon = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackStart))
+        self.start_scan_button.setIcon(icon)
 
         self.horizontalLayout.addWidget(self.start_scan_button)
 
         self.stop_scan_button = QPushButton(self.centralwidget)
         self.stop_scan_button.setObjectName(u"stop_scan_button")
+        icon1 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackStop))
+        self.stop_scan_button.setIcon(icon1)
 
         self.horizontalLayout.addWidget(self.stop_scan_button)
+
+        self.export_csv_Button = QPushButton(self.centralwidget)
+        self.export_csv_Button.setObjectName(u"export_csv_Button")
+        icon2 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.MediaFlash))
+        self.export_csv_Button.setIcon(icon2)
+
+        self.horizontalLayout.addWidget(self.export_csv_Button)
 
         self.scan_progress_bar = QProgressBar(self.centralwidget)
         self.scan_progress_bar.setObjectName(u"scan_progress_bar")
         self.scan_progress_bar.setValue(24)
 
         self.horizontalLayout.addWidget(self.scan_progress_bar)
+
 
         self.verticalLayout.addLayout(self.horizontalLayout)
 
@@ -83,7 +102,6 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
 
         QMetaObject.connectSlotsByName(MainWindow)
-
     # setupUi
 
     def retranslateUi(self, MainWindow):
@@ -91,4 +109,6 @@ class Ui_MainWindow(object):
         self.actionffff.setText(QCoreApplication.translate("MainWindow", u"ffff", None))
         self.start_scan_button.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.stop_scan_button.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
+        self.export_csv_Button.setText(QCoreApplication.translate("MainWindow", u"Export CSV", None))
     # retranslateUi
+

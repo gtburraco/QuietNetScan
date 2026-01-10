@@ -2,8 +2,9 @@ import os
 import sys
 from typing import List
 
+from PySide6.QtCore import QStandardPaths
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QHeaderView
 from scapy.all import conf
 
 from utils.ip_utils import get_local_network_prefix, is_valid_ip_range, generate_ip_list, MAX_IP_SCAN
@@ -26,12 +27,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.network_table_viewmodel = NetworkTableViewModel(self)
         self.network_table_view.setModel(self.network_table_viewmodel)
 
+        self.network_table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         # --- Scanner thread placeholder ---
         self.scanner = None
 
         # --- Button connections ---
         self.start_scan_button.clicked.connect(self.start_scan)
         self.stop_scan_button.clicked.connect(self.stop_scan)
+        self.export_csv_Button.clicked.connect(self.export_csv)
 
         # --- Progress bar setup ---
         self.scan_progress_bar.setMinimum(0)
@@ -121,6 +124,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         event.accept()
 
+    def export_csv(self):
+        if  self.network_table_viewmodel.rowCount() <= 0:
+            return
+
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export CSV",
+            QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation),
+            "CSV Files (*.csv);;All Files (*.*)"
+        )
+        if path:
+            self.network_table_viewmodel.export_to_csv(path)
+            self.statusBar().showMessage("CSV exported successfully")
 
 def resource_path(relative_path: str) -> str:
     try:
@@ -135,7 +151,7 @@ def resource_path(relative_path: str) -> str:
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Network Scanner")
-    app.setApplicationVersion("v1.1")
+    app.setApplicationVersion("v1.2")
     print("PCAP backend:", conf.L2socket)
     window = MainWindow()
     window.setWindowTitle(app.applicationName() + " " + app.applicationVersion())
